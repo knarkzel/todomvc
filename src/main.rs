@@ -94,25 +94,16 @@ fn menu(todos: &[Todo]) -> String {
 }
 
 fn index(todos: &[Todo], filter: Filter) -> String {
-    let messages = match filter {
-        Filter::All => todos
-            .into_iter()
-            .enumerate()
-            .map(|(i, it)| it.show(i))
-            .collect::<String>(),
-        Filter::Active => todos
-            .into_iter()
-            .filter(|it| !it.marked)
-            .enumerate()
-            .map(|(i, it)| it.show(i))
-            .collect::<String>(),
-        Filter::Completed => todos
-            .into_iter()
-            .filter(|it| it.marked)
-            .enumerate()
-            .map(|(i, it)| it.show(i))
-            .collect::<String>(),
-    };
+    let messages = todos
+        .into_iter()
+        .filter(|it| match filter {
+            Filter::All => true,
+            Filter::Active => !it.marked,
+            Filter::Completed => it.marked,
+        })
+        .enumerate()
+        .map(|(i, it)| it.show(i))
+        .collect::<String>();
     format!("{}{}<ul>{}</ul>", INDEX, messages, menu(todos))
 }
 
