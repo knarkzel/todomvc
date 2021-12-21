@@ -20,11 +20,26 @@ struct Todo {
     message: String,
 }
 
+impl Todo {
+    fn show(&self, index: usize) -> String {
+        format!(
+            r#"
+<li><form action="/update" method="post">
+  <input type="text" name="update" value="{}">
+  <input type="hidden" name="index" value="{}">
+  <input type="submit" value="Update">
+</form></li>
+"#,
+            self.message, index
+        )
+    }
+}
+
 const INDEX: &str = r#"
 <h1>Todos</h1>
 <form action="/create" method="post">
   <label for="todo">Add todo note: </label>
-  <input type="text" id="todo" name="todo">
+  <input type="text" name="todo">
   <input type="submit" value="Submit">
 </form>
 "#;
@@ -32,9 +47,16 @@ const INDEX: &str = r#"
 fn index(todos: &[Todo]) -> String {
     let messages = todos
         .into_iter()
-        .map(|it| format!("<li>{}</li>", it.message))
+        .enumerate()
+        .map(|(i, it)| it.show(i))
         .collect::<String>();
     format!("{}<ul>{}</ul>", INDEX, messages)
+}
+
+fn parse_form(input: &str) -> Option<Vec<&str>> {
+    let args = input.split("\r\n\r\n").skip(1).next()?;
+    let items = args.split("&").flat_map(|it| it.split("=").skip(1).next()).collect::<Vec<_>>();
+    Some(items)
 }
 
 fn main() -> Result<()> {
@@ -60,14 +82,17 @@ fn main() -> Result<()> {
                         stream.write(&respond(index(&todos)))?;
                     }
                     "POST/create" => {
-                        if let Some(header) = raw.split("\r\n\r\n").skip(1).next() {
-                            if let Some(message) =
-                                header.split("=").skip(1).next().map(str::to_string)
-                            {
-                                if message.len() > 0 {
-                                    todos.push(Todo { message });
-                                }
+                        if let Some(args) = parse_form(raw) {
+                            if args[0].len() > 0 {
+                                todos.push(Todo { message: args[0].to_string() });
                             }
+                            stream.write(&respond(index(&todos)))?;
+                        }
+                    }
+                    "POST/update" => {
+                        if let Some(args) = parse_form(raw) {
+                            let i = args[1].parse::<usize>()?;
+                            todos[i].message = args[0].to_string();
                             stream.write(&respond(index(&todos)))?;
                         }
                     }
