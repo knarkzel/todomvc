@@ -47,6 +47,7 @@ impl Todo {
 }
 
 const INDEX: &str = r#"
+<title>TodoMVC</title>
 <style>
 body { max-width: 800px; margin: 0 auto; font-size: 28px; font-family: "Helvetica", "Arial", sans-serif; }
 a { color: #e81c4f; }
