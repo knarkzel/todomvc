@@ -24,23 +24,35 @@ impl Todo {
     fn show(&self, index: usize) -> String {
         format!(
             r#"
-<li><form action="/update" method="post">
-  <input type="text" name="update" value="{}">
+<li>
+<form action="/update" method="post">
+  <input type="text" name="update" value="{}" autocomplete="off">
   <input type="hidden" name="index" value="{}">
-  <input type="submit" value="Update">
-</form></li>
+</form>
+<form action="/delete" method="post">
+  <input type="hidden" name="index" value="{}">
+  <input type="submit" value="Delete">
+</form>
+</li>
 "#,
-            self.message, index
+            self.message, index, index
         )
     }
 }
 
 const INDEX: &str = r#"
-<h1>Todos</h1>
+<style>
+body { max-width: 800px; margin: 0 auto; font-size: 28px; }
+h1 { text-align: center; margin: 0; }
+form { display: inline; }
+input[type=text] { padding: 1em; width: 100%; }
+ul { margin: 10px 0; padding: 0; }
+li { list-style-type: none; position: relative; margin: 10px 0; }
+input[type=submit] { position: absolute; right: 0px; height: 100%; font-size: 20px; }
+</style>
+<h1>todos</h1>
 <form action="/create" method="post">
-  <label for="todo">Add todo note: </label>
-  <input type="text" name="todo">
-  <input type="submit" value="Submit">
+  <input type="text" name="todo" placeholder="What needs to be done?" autocomplete="off">
 </form>
 "#;
 
@@ -92,7 +104,16 @@ fn main() -> Result<()> {
                     "POST/update" => {
                         if let Some(args) = parse_form(raw) {
                             let i = args[1].parse::<usize>()?;
-                            todos[i].message = args[0].to_string();
+                            if let Some(mut todo) = todos.get_mut(i) {
+                                todo.message = args[0].to_string();
+                            }
+                            stream.write(&respond(index(&todos)))?;
+                        }
+                    }
+                    "POST/delete" => {
+                        if let Some(args) = parse_form(raw) {
+                            let i = args[0].parse::<usize>()?;
+                            todos.remove(i);
                             stream.write(&respond(index(&todos)))?;
                         }
                     }
